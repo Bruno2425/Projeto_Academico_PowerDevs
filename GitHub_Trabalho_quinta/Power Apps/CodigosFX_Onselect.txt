@@ -1,0 +1,391 @@
+Códigos FX - Onselect com conexão ao SharePoint
+
+--Botão Entrar - Tela_inicial_login_cliente--
+
+Set(
+    varEmailEncontrado;
+    LookUp(Email; end_email = txt_email_login.Text)
+);;
+
+If(
+    !IsBlank(varEmailEncontrado);
+    Set(
+        varUsuarioLogado;
+        LookUp(Cliente; cnpj = varEmailEncontrado.cnpj_fk && senha = txt_senha_login.Text)
+    );
+    Set(varUsuarioLogado; Blank())
+);;
+
+If(
+    !IsBlank(varUsuarioLogado);
+    Navigate(Login_Cliente);
+    Notify("E-mail ou senha incorretos"; NotificationType.Error)
+);;
+
+Reset(txt_email_login);;
+Reset(txt_senha_login)
+
+--Botão Cadastrar - tela_cadastro_cliente--
+
+Patch(
+    Cliente;
+    Defaults(Cliente);
+    {
+        cnpj: txt_cnpj.Text;
+        nome_emp: txt_empresa.Text;
+        endereco: txt_endereco.Text;
+        senha: txt_senha.Text
+    }
+);;
+    
+    Patch(
+        Email;
+        Defaults(Email);
+        {
+            end_email: txt_email.Text;
+            cnpj_fk: txt_cnpj.Text
+        }
+    );;
+
+    Patch(
+        Telefone;
+        Defaults(Telefone);
+        {
+            num_telefone: txt_telefone.Text;
+            cnpj_fk: txt_cnpj.Text
+        }
+    );;
+
+Notify("Usuário Cadastrado com Sucesso";NotificationType.Success;3000);;
+
+Reset(txt_cnpj);;
+Reset(txt_email);;
+Reset(txt_empresa);;
+Reset(txt_endereco);;
+Reset(txt_senha);;
+Reset(txt_telefone);;
+
+Navigate(Home);;
+
+--Botão Enviar Pedido - tela_pedido_cliente--
+
+Set(
+    novoPedido;
+    Patch(
+        Pedido;
+        Defaults(Pedido);
+        {
+            id_pedido:Max(Pedido;id_pedido)+1;
+            data:Now();
+            status:"Em andamento";
+            cnpj_fk: varUsuarioLogado.cnpj
+        }));;
+
+        ForAll(
+            Carrinho;
+            Patch(
+                Inclui;
+                Defaults(Inclui);
+                {
+                    id_pedido_fk:Max(Inclui;id_pedido_fk)+1;
+                    id_matriz_fk:id_matriz;
+                    quantidade: 1                    
+                }
+            ));;
+            Clear(Carrinho);;
+            Notify("Pedido enviado com sucesso";NotificationType.Success;3000)
+
+--Botão Entrar - tela_login_funcionario--
+
+Set(
+    varIDEncontrado;
+    LookUp(Funcionario; id_func = Int(txt_id_login_func.Text))
+);;
+
+If(
+    !IsBlank(varIDEncontrado);
+    Set(
+        varFuncionarioLogado;
+        LookUp(Funcionario; id_func = varIDEncontrado.id_func && senha_func = txt_senha_login_func.Text)
+    );
+    Set(varFuncionarioLogado; Blank())
+);;
+
+If(
+    !IsBlank(varFuncionarioLogado);
+    Navigate(Gerenciamento);
+    Notify("ID ou senha incorretos"; NotificationType.Error; 3000)
+);;
+
+Reset(txt_id_login_func);;
+Reset(txt_senha_login_func)
+
+--Botão Salvar - tela_novo_funcionario--
+
+Patch(
+    Funcionario;
+    Defaults(Funcionario);
+    {
+        id_func: Int(txt_func_id.Text);
+        nome_func: txt_func_nome.Text;
+        cargo: txt_func_cargo.Text;
+        senha_func: txt_func_senha.Text
+    }
+);;
+
+Notify("Funcionário Cadastrado com Sucesso";NotificationType.Success;3000);;
+
+Reset(txt_func_id);;
+Reset(txt_func_nome);;
+Reset(txt_func_cargo);;
+Reset(txt_func_senha);;
+
+Set(varFuncNovo; false)
+
+--Botão Confirmar - tela_editar_funcionario--
+
+Patch(
+Funcionario; 
+LookUp(Funcionario; id_func = Int(glr_funcionarios.Selected.id_func)); 
+{ 
+    id_func : Int(txt_func_id_editar.Text);
+    nome_func : txt_func_nome_editar.Text;
+    cargo : txt_func_cargo_editar.Text;
+    senha_func : txt_func_senha_editar.Text
+});;
+
+Notify("Funcionário Alterado com Sucesso";NotificationType.Success;3000);;
+
+Reset(txt_func_id_editar);;
+Reset(txt_func_nome_editar);;
+Reset(txt_func_cargo_editar);;
+Reset(txt_func_senha_editar);;
+
+Set(varFuncEditar; false)
+
+--Botão Sim - tela_excluir_funcionario--
+
+Remove(
+    Funcionario;
+    LookUp(
+        Funcionario;
+        id_func = Int(glr_funcionarios.Selected.id_func)
+    )
+);;
+
+Notify(
+    "O funcionário foi excluído com sucesso.";
+    NotificationType.Success; 
+    3000 
+);;
+
+Set(varFuncExcluir;false)
+
+--Botão Cadastrar - tela_nova_matriz--
+
+Patch(
+    Matriz;
+    Defaults(Matriz);
+    {
+        id_matriz: txt_matriz.Text
+    }
+);;
+
+If(
+    !IsBlank(Dd_Mprima1.Selected.Value);
+    Patch(
+        Contem;
+        Defaults(Contem);
+        {
+            id_matriz_fk: txt_matriz.Text;
+            id_m_prima_fk: LookUp(M_prima; nome_m_prima = Dd_Mprima1.Selected.Value; id_m_prima);
+            qtd_m_prima: Int(txt_qtd_1.Text)
+        }
+    )
+);;
+
+If(
+    !IsBlank(Dd_Mprima1.Selected.Value);
+    Patch(
+    M_prima;
+    LookUp(M_prima; nome_m_prima = Dd_Mprima1.Selected.Value);
+    { estoque_m_prima: LookUp(M_prima; nome_m_prima = Dd_Mprima1.Selected.Value; estoque_m_prima) - Value(txt_qtd_1.Text) }
+)
+);;
+
+If(
+    !IsBlank(Dd_Mprima2.Selected.Value);
+    Patch(
+        Contem;
+        Defaults(Contem);
+        {
+            id_matriz_fk: txt_matriz.Text;
+            id_m_prima_fk: LookUp(M_prima; nome_m_prima = Dd_Mprima2.Selected.Value; id_m_prima);
+            qtd_m_prima: Int(txt_qtd_2.Text) 
+        }
+    )
+);;
+
+If(
+    !IsBlank(Dd_Mprima2.Selected.Value);
+    Patch(
+    M_prima;
+    LookUp(M_prima; nome_m_prima = Dd_Mprima2.Selected.Value);
+    { estoque_m_prima: LookUp(M_prima; nome_m_prima = Dd_Mprima2.Selected.Value; estoque_m_prima) - Value(txt_qtd_2.Text) }
+)
+);;
+
+If(
+    !IsBlank(Dd_Mprima3.Selected.Value);
+    Patch(
+        Contem;
+        Defaults(Contem);
+        {
+            id_matriz_fk: txt_matriz.Text;
+            id_m_prima_fk: LookUp(M_prima; nome_m_prima = Dd_Mprima3.Selected.Value; id_m_prima);
+            qtd_m_prima: Int(txt_qtd_3.Text)
+        }
+    )
+);;
+
+If(
+    !IsBlank(Dd_Mprima3.Selected.Value);
+    Patch(
+    M_prima;
+    LookUp(M_prima; nome_m_prima = Dd_Mprima3.Selected.Value);
+    { estoque_m_prima: LookUp(M_prima; nome_m_prima = Dd_Mprima3.Selected.Value; estoque_m_prima) - Value(txt_qtd_3.Text) }
+)
+);;
+
+If(
+    !IsBlank(Dd_Mprima4.Selected.Value);
+    Patch(
+        Contem;
+        Defaults(Contem);
+        {
+            id_matriz_fk: txt_matriz.Text;
+            id_m_prima_fk: LookUp(M_prima; nome_m_prima = Dd_Mprima4.Selected.Value; id_m_prima);
+            qtd_m_prima: Int(txt_qtd_4.Text)
+        }
+    )
+);;
+
+If(
+    !IsBlank(Dd_Mprima4.Selected.Value);
+    Patch(
+    M_prima;
+    LookUp(M_prima; nome_m_prima = Dd_Mprima4.Selected.Value);
+    { estoque_m_prima: LookUp(M_prima; nome_m_prima = Dd_Mprima4.Selected.Value; estoque_m_prima) - Value(txt_qtd_4.Text) }
+)
+);;
+
+Notify(
+    "Matriz cadastrada com sucesso !!!";
+    NotificationType.Success;
+    3000);;
+
+Reset(txt_matriz);;
+Reset(Dd_Mprima1);;
+Reset(Dd_Mprima2);;
+Reset(Dd_Mprima3);;
+Reset(Dd_Mprima4);;
+Reset(txt_qtd_1);;
+Reset(txt_qtd_2);;
+Reset(txt_qtd_3);;
+Reset(txt_qtd_4)
+
+--Botão Sim - tela_excluir_matriz--
+
+ RemoveIf(
+    Contem;
+    id_matriz_fk = varMatrizSelecionada.id_matriz 
+);;
+
+Remove(
+    Matriz;
+    LookUp(
+        Matriz;
+        id_matriz = varMatrizSelecionada.id_matriz
+    )
+);;
+
+Notify(
+    "A Matriz e todas as suas associações de Matéria Prima foram excluídas com sucesso.";
+    NotificationType.Success; 
+    3000 
+);;
+
+Set(varExcluindo;false)
+
+--Botão Salvar - tela_editar_matriz--
+
+Set(varOldID; varMatrizSelecionada.id_matriz);;
+Set(varNewID; txt_editar.Text);;
+
+Patch(
+    Matriz; 
+    LookUp(Matriz; id_matriz = varOldID); 
+    { id_matriz: varNewID }
+);;
+
+Contém
+UpdateIf(
+    Contem;
+    id_matriz_fk = varOldID;
+    { id_matriz_fk: varNewID }
+);;
+
+Notify(
+    "A matriz foi alterada com sucesso!!!";
+    NotificationType.Success;
+    3000
+);;
+
+Set(varEditando; false)
+
+--Ícone Confirmar(V) - tela_gereciar_pedidos--
+
+Patch(
+    Pedido; 
+    LookUp(Pedido; id_pedido = ThisItem.id_pedido); 
+    { status: "Finalizado";
+    id_func_fk:varFuncionarioLogado.id_func }
+);;
+
+Notify(
+    "O pedido foi aprovado!!!";
+    NotificationType.Success;
+    3000
+);;
+
+--Ícone Recusar(X) - tela_gereciar_pedidos--
+
+Patch(
+    Pedido; 
+    LookUp(Pedido; id_pedido = ThisItem.id_pedido); 
+    { status: "Reprovado";
+    id_func_fk:varFuncionarioLogado.id_func }
+);;
+
+Notify(
+    "O pedido foi reprovado!!!";
+    NotificationType.Error;
+    3000
+);;
+
+--Botão Adicionar - tela_estoque--
+
+Patch(
+    M_prima; 
+    LookUp(M_prima; id_m_prima = varListaEstoque.id_m_prima); 
+    { estoque_m_prima: varListaEstoque.estoque_m_prima + Int(txt_add_estoque.Text) }
+);;
+
+Notify(
+    "O estoque foi atualizado com sucesso!!!";
+    NotificationType.Success;
+    3000
+);;
+
+Set(varAddEstoque; false);;
+Reset(txt_add_estoque)
